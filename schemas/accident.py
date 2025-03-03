@@ -1,6 +1,6 @@
-from models.accident import AccidentBase
+from models.accident import AccidentCreate, AccidentPublic
 
-def accident_entity(entity: dict) -> AccidentBase:
+def accident_entity(entity: dict) -> AccidentCreate:
     return {
         "num_acidente": str(entity['num_acidente']), 
         "chv_localidade": entity['chv_localidade'], 
@@ -20,3 +20,13 @@ def accident_entity(entity: dict) -> AccidentBase:
         "qtde_feridosilesos": entity['qtde_feridosilesos'], 
         "qtde_obitos": entity['qtde_obitos'] 
     }
+def accident_entity_from_db(entity: dict) -> AccidentPublic:
+    accident = {
+        'id': str(entity['_id']),
+        **accident_entity(entity)
+    }
+    
+    return accident
+
+def accident_entities_from_db(entities: list) -> list[AccidentPublic]:
+    return [accident_entity_from_db(entity) for entity in entities]
