@@ -5,18 +5,18 @@ from config.database import mongodb_client
 
 
 ZIP_PATH = 'resources/Vitimas_DadosAbertos_20230912.csv.zip'
-CSV_FILENAME = 'Vitimas_DadosAbertos_20230912.csv'
+CSV_FILENAME = 'transa.csv'
 
 data_array = []
+
 
 #Colunas a serem limpas
 #Remover dados com os valores 'DESCONHECIDO' e 'NÃO INFORMADO'
 #Limpeza necessária pois é preciso que os dados sejam íntegros
 columns_to_clean = [
     'num_acidente', 'chv_localidade', 'data_acidente', 'uf_acidente',
-    'ano_acidente', 'mes_acidente', 'mes_ano_acidente', 'faixa_idade',
-    'genero', 'tp_envolvido', 'qtde_envolvidos', 'qtde_feridosilesos', 'ind_motorista', 'susp_alcool', 'gravidade_lesao',
-    'qtde_obitos'
+    'ano_acidente', 'mes_acidente', 'genero', 'faixa_idade', 'gravidade_lesao', 'equip_seguranca',
+    'tp_envolvido'
 ]
 
 with zipfile.ZipFile(ZIP_PATH, 'r') as zip_ref:
@@ -26,9 +26,9 @@ with zipfile.ZipFile(ZIP_PATH, 'r') as zip_ref:
         # Remover linhas que contenham "NAO INFORMADO" ou "DESCONHECIDO" nas colunas selecionadas
         for column in columns_to_clean:
             victims = victims[(victims[column] != "NAO INFORMADO") & (victims[column] != "DESCONHECIDO")]
-
-        # Na coluna quantidade de envolvidos, o retorno deve ser somente aqueles diferente de 0
-        victims = victims[victims['qtde_envolvidos'] != 0]
+        
+        # Remover duplicados a partir do num_acidente (pegar o primeiro resultado)
+        victims = victims.drop_duplicates(subset=['num_acidente'], keep='first')  
 
         # Contar quantas linhas foram removidas
         final_result = victims.shape[0]
