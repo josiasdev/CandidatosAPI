@@ -5,7 +5,7 @@ from config.database import mongodb_client
 
 
 ZIP_PATH = 'resources/Vitimas_DadosAbertos_20230912.csv.zip'
-CSV_FILENAME = 'transa.csv'
+CSV_FILENAME = 'Vitimas_DadosAbertos_20230912.csv'
 
 data_array = []
 
