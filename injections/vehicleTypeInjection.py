@@ -3,7 +3,8 @@ import pandas as pd
 from schemas.vehicleType import vehicle_entity
 from config.database import mongodb_client
 
-ZIP_PATH_TYPE_VEHICLE = '/home/rafael/Estudos/UFC/Persistencia/TipoVeiculo_DadosAbertos_20230912.csv.zip'
+
+ZIP_PATH_TYPE_VEHICLE = '/home/rafael/Estudos/UFC/Persistencia//TipoVeiculo_DadosAbertos_20230912.csv.zip'
 CSV_FILENAME_TYPE_VEHICLE = 'TipoVeiculo_DadosAbertos_20230912.csv'
 
 ZIP_PATH_ACCIDENT = '/home/rafael/Estudos/UFC/Persistencia/Acidentes_DadosAbertos_20230912.csv.zip'
