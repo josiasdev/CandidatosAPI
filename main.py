@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from routes.accidents import router as accidents_router
-from routes.vehicle import router as vehicles_router
+from routes.BensCandidato import router as bens_candidato_router
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -42,7 +42,7 @@ async def log_requests(request: Request, call_next):
 @app.on_event("startup")
 async def startup_db_client():
     app.mongodb_client = MongoClient("mongodb://localhost:27017")
-    app.database = app.mongodb_client['trafficAccidents']
+    app.database = app.mongodb_client['Candidatos']
     print("Connected to the MongoDB database!")
 
 @app.on_event("shutdown")
@@ -56,4 +56,4 @@ async def homepage():
     return {"message": "welcome to our homepage"}
 
 app.include_router(accidents_router, prefix="/accidents", tags=["Accidents"])
-app.include_router(vehicles_router, prefix="/vehicles", tags=["Vehicles"])
+app.include_router(bens_candidato_router, prefix="/bens_candidato", tags=["BensCandidato"])
