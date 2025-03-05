@@ -1,58 +1,107 @@
 import zipfile
 import pandas as pd
+from schemas.eleicao import eleicao_entity
+from config.database import mongodb_client
+from pydantic import ValidationError
+import sys
 
-# Caminho dos arquivos ZIP e dos CSV
-ZIP_PATH_CANDIDATOS = '/content/consulta_cand_2024.zip'
-CSV_FILENAME_CANDIDATOS = 'consulta_cand_2024_CE.csv'
+# Caminho dos arquivos ZIP e das colunas desejadas
+ZIP_PATH_CANDIDATOS = 'resources/consulta_cand_2024.zip'
+ZIP_PATH_VAGAS = 'resources/consulta_vagas_2024.zip'
 
-ZIP_PATH_VAGAS = '/content/consulta_vagas_2024.zip'
-CSV_FILENAME_VAGAS = 'consulta_vagas_2024_CE.csv'
-
-# Colunas desejadas para vagas
-colunas_desejadas_vagas = [
+# Colunas para realizar o tratamento
+colunas_desejadas_candidatos = [
     "CD_ELEICAO", "DS_ELEICAO", "DT_ELEICAO", "ANO_ELEICAO",
-    "CD_TIPO_ELEICAO", "NM_TIPO_ELEICAO", "DT_POSSE"
+    "CD_TIPO_ELEICAO", "NM_TIPO_ELEICAO", "TP_ABRANGENCIA", "NR_TURNO"
 ]
 
-# Processar o ZIP de Vagas
-with zipfile.ZipFile(ZIP_PATH_VAGAS, 'r') as zip_ref:
-    with zip_ref.open(CSV_FILENAME_VAGAS) as csv_file:
-        # Ler o CSV com as colunas desejadas de vagas
-        vagas = pd.read_csv(csv_file, sep=';', encoding='latin1', usecols=colunas_desejadas_vagas)
+# ------------ LEITURA DOS ARQUIVOS DE CANDIDATOS ------------
+with zipfile.ZipFile(ZIP_PATH_CANDIDATOS, 'r') as zip_ref_candidatos:
+    # Filtrar apenas os arquivos CSV de candidatos
+    arquivos_candidatos = [f for f in zip_ref_candidatos.namelist() if f.endswith('.csv')]
+    
+    dataframes_candidatos = []
+    for arquivo_candidato in arquivos_candidatos:
+        if "consulta_cand" not in arquivo_candidato:
+            print(f"AVISO: O arquivo {arquivo_candidato} não contém 'consulta_cand' no nome.")
+            sys.exit(1)  # Interrompe o programa imediatamente
 
-# Garantir que os códigos de eleição e as datas de posse sejam únicas
-vagas_unicas = vagas.drop_duplicates(subset=['CD_ELEICAO', 'DT_POSSE'])
+        else:
+            with zip_ref_candidatos.open(arquivo_candidato) as csv_file_candidato:
+                try:
+                    df_candidato = pd.read_csv(csv_file_candidato, sep=';', encoding='latin1', usecols=colunas_desejadas_candidatos)
+                    dataframes_candidatos.append(df_candidato)
+                except ValueError as e:
+                    print(f"Erro ao ler o arquivo {arquivo_candidato}: {str(e)}")
+                    sys.exit(1)  # Interrompe o programa imediatamente
 
-# Carregar o CSV dos candidatos
-with zipfile.ZipFile(ZIP_PATH_CANDIDATOS, 'r') as zip_ref:
-    with zip_ref.open(CSV_FILENAME_CANDIDATOS) as csv_file:
-        # Ler o CSV com os dados dos candidatos
-        candidatos = pd.read_csv(csv_file, sep=';', encoding='latin1')
+# Remover duplicatas com base no código da eleição
+df_candidatos_unico = df_candidato.drop_duplicates(subset=['CD_ELEICAO'])
 
-# Filtrar os candidatos com os códigos de eleição presentes em vagas_unicas
-candidatos_filtrados = candidatos[candidatos['CD_ELEICAO'].isin(vagas_unicas['CD_ELEICAO'])]
+# ------------ LEITURA DOS ARQUIVOS DE VAGAS ------------
+# Função para ler todos os arquivos CSV de um ZIP e juntar em um único DataFrame
+with zipfile.ZipFile(ZIP_PATH_VAGAS, 'r') as zip_ref:  # Abrindo diretamente o arquivo ZIP
+    # Filtra apenas os arquivos CSV de vagas
+    arquivos_vagas = [f for f in zip_ref.namelist() if f.endswith('.csv')]
+    
+    data_frame_vagas = []
+    for arquivo_vaga in arquivos_vagas:
+        if "consulta_vagas" not in arquivo_vaga:
+            print(f"AVISO: O arquivo {arquivo_vaga} não contém 'consulta_vagas' no nome.")
+            sys.exit(1)  # Interrompe o programa imediatamente
+        else:
+            with zip_ref.open(arquivo_vaga) as file:
+                try:
+                    df_vagas = pd.read_csv(file, sep=';', encoding='latin1', usecols=['CD_ELEICAO', 'QT_VAGA'])
+                    data_frame_vagas.append(df_vagas)
+                except ValueError as e:
+                    print(f"Erro ao ler o arquivo {arquivo_vaga}: {str(e)}")
+                    sys.exit(1)  # Interrompe o programa imediatamente
 
-# Merge entre as tabelas
-resultado = pd.merge(vagas_unicas, candidatos_filtrados[['CD_ELEICAO', 'TP_ABRANGENCIA', 'NR_TURNO']], 
-                     on='CD_ELEICAO', how='left')
+# Somar os valores de 'QT_VAGA' para cada 'CD_ELEICAO'
+df_vagas_sum = df_vagas.groupby('CD_ELEICAO')['QT_VAGA'].sum().reset_index()
 
-resultado = resultado.drop_duplicates(subset=['CD_ELEICAO', 'DT_POSSE'])
+# Agora, unir os dados de vagas com a soma dos valores de 'QT_VAGA' para cada código de eleição
+df_final = pd.merge(df_candidatos_unico, df_vagas_sum, on='CD_ELEICAO', how='left')
+
+# # Preencher valores ausentes (NaN) com 0
+df_final['QT_VAGA'] = df_final['QT_VAGA'].fillna(0)
+df_final['QT_VAGA'] = df_final['QT_VAGA'].astype(int)
 
 
-# Obter os IDs que estão em 'candidatos' mas não estão em 'resultado'
-ids_nao_encontrados = candidatos[~candidatos['CD_ELEICAO'].isin(resultado['CD_ELEICAO'])]
+print("Tratamento dos dados finalizados.")
+print(f"Total de dados a serem carregados: {df_final.shape[0]}")
+print("Inserindo dados no banco. Aguarde...")
 
-# Garantir que cada 'CD_ELEICAO' seja único
-ids_nao_encontrados_unicos = ids_nao_encontrados.drop_duplicates(subset=['CD_ELEICAO'])
+# ------------ INÍCIO DA INSERÇÃO NO BANCO DE DADOS ------------
+db = mongodb_client['eleicoes']  # Nome do banco de dados
+collection = db['eleicoes']  # Nome da coleção onde os dados serão inseridos
 
-# Selecionar apenas as colunas desejadas e adicionar 'DT_POSSE' com valor fixo
-ids_nao_encontrados_unicos = ids_nao_encontrados_unicos[
-    ['CD_ELEICAO', 'DS_ELEICAO', 'DT_ELEICAO', 'ANO_ELEICAO', 
-     'CD_TIPO_ELEICAO', 'NM_TIPO_ELEICAO', 'TP_ABRANGENCIA', 'NR_TURNO']
-].copy()
+for eleicao in df_final.to_dict(orient="records"):
+    try:
+        # Criar a instância de EleicaoBase
+        dados_eleicao = eleicao_entity(eleicao)
 
-# Adicionar a coluna 'DT_POSSE' com o valor "00/00/0000"
-ids_nao_encontrados_unicos['DT_POSSE'] = "00/00/0000"
+        # Converte os dados para dicionário
+        dados_dict = dados_eleicao.model_dump()
 
-# Conteúdo de eleição já tratado
-resultado_final = pd.concat([resultado, ids_nao_encontrados_unicos])
+        # Substituir o campo '_id' pelo valor de 'cd_eleicao' como o identificador
+        dados_dict['_id'] = dados_dict['cd_eleicao']
+
+        # Verificar se já existe o cd_eleicao no banco de dados
+        if collection.find_one({'cd_eleicao': dados_eleicao.cd_eleicao}) is not None:
+            print(f"Eleição com cd_eleicao {dados_eleicao.cd_eleicao} já existe no banco de dados.")
+        else:
+            # Inserir no banco de dados
+            result = collection.insert_one(dados_dict)  # Inserindo o dicionário com o campo '_id' alterado
+
+            # Verificar se o documento foi inserido corretamente
+            if result.inserted_id:
+                print(f"Eleição com cd_eleicao {dados_eleicao.cd_eleicao} inserida com sucesso!")
+            else:
+                print("Erro ao inserir os dados no banco.")
+
+    except ValidationError as e:
+        print(f"Erro de validação: {e}")
+    except Exception as e:
+        print(f"Algo deu errado: {e}")
