@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes.accidents import router as accidents_router
+from routes.candidatos import router as candidatos_router
 
 app = FastAPI()
 
@@ -36,4 +36,4 @@ async def shutdown_db_client():
 async def homepage():
     return {"message": "welcome to our homepage"}
 
-app.include_router(accidents_router, prefix="/accidents", tags=["Accidents"])
+app.include_router(candidatos_router, prefix="/candidatos", tags=["Candidatos"])
