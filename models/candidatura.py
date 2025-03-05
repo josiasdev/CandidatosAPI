@@ -1,5 +1,4 @@
 # candidato 1:n candidaturas 1:n eleicao
-
 # partir do sq_candidato
 # fazer uma busca no motivo_cassacao com sq_candidato egual a sq_candidato
 # recuperar esse titulo e salvar no dado
