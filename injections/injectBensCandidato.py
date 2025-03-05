@@ -76,12 +76,12 @@ print(merged_df.dtypes)
 print(merged_df.count())
 print(merged_df.isnull().sum())
 
-# db = mongodb_client['Candidatos']
-# collection = db['bens_candidato']
+db = mongodb_client['Candidatos']
+collection = db['bens_candidato']
 
-# # Insere no MongoDB, tudo convertendo a dict
-# for _, row in merged_df.iterrows():
-#     entity = bens_candidato_entity(row.to_dict())
-#     collection.insert_one(entity)
+# Insere no MongoDB, tudo convertendo a dict
+for _, row in merged_df.iterrows():
+    entity = bens_candidato_entity(row.to_dict())
+    collection.insert_one(entity)
 
-# print("Dados inseridos com sucesso!")
+print("Dados inseridos com sucesso!")
