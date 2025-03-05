@@ -71,6 +71,7 @@ df_final = pd.merge(df_candidatos_unico, df_vagas_sum, on='CD_ELEICAO', how='lef
 df_final['QT_VAGA'] = df_final['QT_VAGA'].fillna(0)
 df_final['QT_VAGA'] = df_final['QT_VAGA'].astype(int)
 
+df_final.columns = df_final.columns.str.lower()
 
 print("Tratamento dos dados finalizados.")
 print(f"Total de dados a serem carregados: {df_final.shape[0]}")
