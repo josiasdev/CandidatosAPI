@@ -74,6 +74,7 @@ def retornar_dados_limpos(df_candidatos_unico, df_vagas):
     # Preencher valores ausentes (NaN) com 0
     df_final['QT_VAGA'] = df_final['QT_VAGA'].fillna(0)
     df_final['QT_VAGA'] = df_final['QT_VAGA'].astype(int)
+    df_final.columns = df_final.columns.str.lower()
     return df_final
 
 # ------------ ROTAS ------------
