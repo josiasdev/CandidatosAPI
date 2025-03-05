@@ -24,9 +24,7 @@ class CandidaturaBase(BaseModel):
     tp_agremiacao: str
     ds_sit_tot_turno: str # NÃO ELEITO | ELEITO
     ds_tp_motivo: str = ""  # from motivo_cassacao. descreve o tipo de motivo ...
-    ds_motivo: str = "" # from motivo_cassacao. descreve o motivo
-
-
+    ds_motivo: str = "" # from motivo_cassacao.
 
 
 class CandidaturaCreateMixin(BaseModel):
