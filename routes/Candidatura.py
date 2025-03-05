@@ -43,9 +43,11 @@ async def read_candidaturas(
     try:
         cursor = candidatura_collection.find().skip((page - 1) * limit).limit(limit)
         logger.info(f"Retrieved Candidaturas with pagination: page={page}, limit={limit}")
+
         candidatos = list(cursor)  
         print("[DEBUG] Dados brutos do MongoDB:", candidatos)  
-        return candidatura_entities_from_db(cursor)
+        
+        return candidatura_entities_from_db(candidatos)
     except Exception as e:
         logger.error(f"Error retrieving Candidaturas: {e}")
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))

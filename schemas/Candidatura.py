@@ -2,20 +2,20 @@ from models.Candidatura import CandidaturaCreate, CandidaturaPublic
 
 def candidatura_entity(entity: dict) -> CandidaturaCreate:
     return {
-        "sq_candidato": entity["SQ_CANDIDATO"],
-        "nm_candidato": entity["NM_CANDIDATO"],
-        "cd_eleicao": entity["CD_ELEICAO"],
-        "sg_uf": entity["SG_UF"],
-        "ds_cargo": entity["DS_CARGO"],
-        "nr_candidato": entity["NR_CANDIDATO"],
-        "nr_partido": entity["NR_PARTIDO"],
-        "sg_partido": entity["SG_PARTIDO"],
-        "nm_partido": entity["NM_PARTIDO"],
-        "nr_turno": entity["NR_TURNO"],
-        "tp_agremiacao": entity["TP_AGREMIACAO"],
-        "ds_sit_tot_turno": entity["DS_SIT_TOT_TURNO"],
-        "ds_tp_motivo": entity.get("DS_TP_MOTIVO"),  # Pode ser None
-        "ds_motivo": entity.get("DS_MOTIVO")  # Pode ser None
+        "sq_candidato": entity["sq_candidato"],
+        "nm_candidato": entity["nm_candidato"],
+        "cd_eleicao": entity["cd_eleicao"],
+        "sg_uf": entity["sg_uf"],
+        "ds_cargo": entity["ds_cargo"],
+        "nr_candidato": entity["nr_candidato"],
+        "nr_partido": entity["nr_partido"],
+        "sg_partido": entity["sg_partido"],
+        "nm_partido": entity["nm_partido"],
+        "nr_turno": entity["nr_turno"],
+        "tp_agremiacao": entity["tp_agremiacao"],
+        "ds_sit_tot_turno": entity["ds_sit_tot_turno"],
+        "ds_tp_motivo": entity.get("ds_tp_motivo"),
+        "ds_motivo": entity.get("ds_motivo")
     }
 
 def candidatura_entity_from_db(entity: dict) -> CandidaturaPublic:

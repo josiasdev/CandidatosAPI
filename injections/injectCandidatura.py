@@ -2,7 +2,7 @@ import sys
 import zipfile
 import pandas as pd
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parent.parent)) # Adicione o diretório raiz do projeto ao sys.path
+sys.path.append(str(Path(__file__).resolve().parent.parent))  # Adiciona o diretório raiz do projeto ao sys.path
 from schemas.Candidatura import candidatura_entity
 from config.database import mongodb_client
 
@@ -19,19 +19,22 @@ data_array = []
 with zipfile.ZipFile(ZIP_PATH_CANDIDATO, 'r') as zip_ref:
     with zip_ref.open(CSV_FILENAME_CANDIDATO) as csv_file:
         candidatura_df = pd.read_csv(csv_file, sep=';', encoding='cp1252')
-        candidatura_df = candidatura_df[['SQ_CANDIDATO','NM_CANDIDATO', 'CD_ELEICAO', 'SG_UF', 'DS_CARGO', 'NR_CANDIDATO',
-                                         'NR_PARTIDO', 'SG_PARTIDO', 'NM_PARTIDO', 'NR_TURNO', 'TP_AGREMIACAO',
-                                         'DS_SIT_TOT_TURNO']]
+        # Converter os nomes das colunas para minúsculas
+        candidatura_df.columns = candidatura_df.columns.str.lower()
+        candidatura_df = candidatura_df[['sq_candidato', 'nm_candidato', 'cd_eleicao', 'sg_uf', 'ds_cargo', 'nr_candidato',
+                                         'nr_partido', 'sg_partido', 'nm_partido', 'nr_turno', 'tp_agremiacao',
+                                         'ds_sit_tot_turno']]
 
 # Carregar dados de cassação
 with zipfile.ZipFile(ZIP_PATH_CASSACAO, 'r') as zip_ref:
     with zip_ref.open(CSV_FILENAME_CASSACAO) as csv_file:
         cassacao_df = pd.read_csv(csv_file, sep=';', encoding='cp1252')
-        cassacao_df = cassacao_df[['SQ_CANDIDATO', 'DS_TP_MOTIVO', 'DS_MOTIVO']]
+        # Converter os nomes das colunas para minúsculas
+        cassacao_df.columns = cassacao_df.columns.str.lower()
+        cassacao_df = cassacao_df[['sq_candidato', 'ds_tp_motivo', 'ds_motivo']]
 
-
-# Mesclar os DataFrames com base na chave comum 'SQ_CANDIDATO'
-merged_df = pd.merge(candidatura_df, cassacao_df, on='SQ_CANDIDATO', how='left')
+# Mesclar os DataFrames com base na chave comum 'sq_candidato'
+merged_df = pd.merge(candidatura_df, cassacao_df, on='sq_candidato', how='left')
 
 print(merged_df.head())
 print('\n\n')

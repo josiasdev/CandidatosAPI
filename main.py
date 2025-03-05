@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from routes.accidents import router as accidents_router
+from routes.candidatos import router as candidatos_router
 from routes.BensCandidato import router as bens_candidato_router
 from routes.Candidatura import router as candidatura_router
 import logging
@@ -56,6 +56,6 @@ async def homepage():
     logger.info("Endpoint /hello-world acessado")
     return {"message": "welcome to our homepage"}
 
-app.include_router(accidents_router, prefix="/accidents", tags=["Accidents"])
+app.include_router(candidatos_router, prefix="/candidatos", tags=["Candidatos"])
 app.include_router(bens_candidato_router, prefix="/bens_candidato", tags=["BensCandidato"])
 app.include_router(candidatura_router, prefix="/candidatura", tags=["Candidatura"])
