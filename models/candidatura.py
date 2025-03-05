@@ -24,8 +24,8 @@ class CandidaturaBase(BaseModel):
     nr_turno: int # INDICA SE FOI OU NAO PARA SEGUNDO TURNO - QUANTOS ELEITOS FORAM PARA SEGUNDO TURNO
     tp_agremiacao: str
     ds_sit_tot_turno: str # NÃO ELEITO | ELEITO
-    ds_tp_motivo: str = None  # from motivo_cassacao. descreve o tipo de motivo ...
-    ds_motivo: str = None # from motivo_cassacao. descreve o motivo
+    ds_tp_motivo: str = ""  # from motivo_cassacao. descreve o tipo de motivo ...
+    ds_motivo: str = "" # from motivo_cassacao. descreve o motivo
 
 
 
@@ -55,5 +55,5 @@ class CandidaturaUpdate(BaseModel):
     nr_turno:  Optional[int] = None
     tp_agremiacao: Optional[str] = None
     ds_sit_tot_turno:  Optional[str] = None
-    ds_tp_motivo:  Optional[str] = None
-    ds_motivo:  Optional[str] = None
+    ds_tp_motivo:  Optional[str] = ""
+    ds_motivo:  Optional[str] = ""

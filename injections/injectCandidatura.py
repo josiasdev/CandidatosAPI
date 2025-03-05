@@ -36,6 +36,11 @@ with zipfile.ZipFile(ZIP_PATH_CASSACAO, 'r') as zip_ref:
 # Mesclar os DataFrames com base na chave comum 'sq_candidato'
 merged_df = pd.merge(candidatura_df, cassacao_df, on='sq_candidato', how='left')
 
+# Preencher valores NaN com strings vazias
+merged_df['ds_tp_motivo'] = merged_df['ds_tp_motivo'].fillna('')
+merged_df['ds_motivo'] = merged_df['ds_motivo'].fillna('')
+
+
 print(merged_df.head())
 print('\n\n')
 print(merged_df.dtypes)

@@ -14,8 +14,8 @@ def candidatura_entity(entity: dict) -> CandidaturaCreate:
         "nr_turno": entity["nr_turno"],
         "tp_agremiacao": entity["tp_agremiacao"],
         "ds_sit_tot_turno": entity["ds_sit_tot_turno"],
-        "ds_tp_motivo": entity.get("ds_tp_motivo"),
-        "ds_motivo": entity.get("ds_motivo")
+        "ds_tp_motivo": entity.get("ds_tp_motivo",""),
+        "ds_motivo": entity.get("ds_motivo","")
     }
 
 def candidatura_entity_from_db(entity: dict) -> CandidaturaPublic:
