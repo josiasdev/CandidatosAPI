@@ -15,13 +15,14 @@ ERROR_DETAIL = "Some error occurred: {e}"
 NOT_FOUND = "Not found"
 
 async def get_eleicao_collection(request: Request) -> Collection:
-    """Returns the eleicao collection from MongoDB"""
+    """Returns the candidato collection from MongoDB"""
     return request.app.database["eleicao"]
 
 EleicaoCollection = Annotated[Collection, Depends(get_eleicao_collection)]
 
 router = APIRouter()
 
+# ------------ FUNÇÕES AUXILIDARES ------------
 # Função para tratar o arquivo ZIP de candidatos
 async def tratar_zip_candidatos(candidatos_file):
     # Definição das colunas desejadas para os candidatos
@@ -55,21 +56,57 @@ async def tratar_zip_candidatos(candidatos_file):
   
     # Remover duplicatas com base no código da eleição    
     df_eleicao_unico = df_eleicao.drop_duplicates(subset=['CD_ELEICAO'])
+    # Converter a coluna de data  para datetime no formato correto
+    df_eleicao_unico['DT_ELEICAO'] = pd.to_datetime(df_eleicao_unico['DT_ELEICAO'], format="%d/%m/%Y", errors='coerce')
     df_eleicao_unico.columns = df_eleicao_unico.columns.str.lower()
    
     return df_eleicao_unico
 
 # ------------ ROTAS ------------
-# Endpoint para upload dos dados da eleição
+# Inserção manual de eleição.
+@router.post("/", 
+    response_description="Registers a new Eleicao", 
+    status_code=status.HTTP_201_CREATED, response_model=EleicaoCreate)
+async def create_eleicao(eleicao_collection: EleicaoCollection, eleicao: EleicaoCreate):
+    try:
+        eleicao_data = eleicao.model_dump()
+
+        if eleicao_collection.find_one({'cd_eleicao': eleicao_data['cd_eleicao']}) is not None:
+            raise HTTPException(status_code=400, detail=f"Eleição com cd_eleicao {eleicao_data['cd_eleicao']} já existe no banco de dados.")
+            # print(f"Eleição com cd_eleicao {eleicao_data['cd_eleicao']} já existe no banco de dados.")
+          
+        # Inserir o dado no banco de dados
+        result = eleicao_collection.insert_one(eleicao_data)
+
+        # Recuperar o documento inserido usando cd_eleicao
+        created = eleicao_collection.find_one({"cd_eleicao": eleicao_data["cd_eleicao"]})
+            
+        # Caso não tenha encontrado o documento após inserção, lançar erro
+        if not created:
+            raise HTTPException(status_code=500, detail="Failed to create Eleicao")
+        
+        return eleicao_entity_from_db(created)
+    
+    except HTTPException as http_exc:
+        # Captura e retorna a exceção específica HTTPException com o código de erro adequado
+        raise http_exc
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+
+# Fazer upload de arquivo zip para carregar os dados de eleição.
 @router.post("/upload/carregar-dados-eleicao", 
     response_description="Import data to DB using a ZIP file.", 
     status_code=status.HTTP_201_CREATED)
 async def upload_dados_eleicao(
-        eleicao_collection: EleicaoCollection,
+    eleicao_collection: EleicaoCollection,
     candidatos_file: UploadFile = File(...)
 ):
     if not candidatos_file:
         raise HTTPException(status_code=400, detail="É necessário enviar um arquivo ZIP.")
+
+    if not candidatos_file.filename.endswith(".zip"):
+        raise HTTPException(status_code=400, detail="O arquivo enviado não é um ZIP válido.")
 
     try:
         # Processar os dados do arquivo ZIP
@@ -96,23 +133,15 @@ async def upload_dados_eleicao(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/", 
-    response_description="Registers a new Eleicao", 
-    status_code=status.HTTP_201_CREATED, response_model=EleicaoCreate)
-async def create_eleicao(eleicao_collection: EleicaoCollection, eleicao: EleicaoCreate):
-    try:
-        eleicao_data = eleicao.model_dump()
-
-        # Verifica se já tem o cd_eleicao cadastrado.
-        if eleicao_collection.find_one({'cd_eleicao': eleicao_data['cd_eleicao']}) is not None:
-            raise HTTPException(status_code=400, detail=f"Eleição com cd_eleicao {eleicao_data['cd_eleicao']} já existe no banco de dados.")
-          
-        eleicao_collection.insert_one(eleicao_data)
-        
-        return eleicao_entity_from_db(created)
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+    
+# Pegar 
+@router.get("/", 
+    response_description="Retrieves Eleicao", 
+    response_model=list[EleicaoPublic])
+async def read_eleicoes(
+    eleicao_collection: EleicaoCollection,
+    page: Annotated[int, Query(ge=1, description="Pagination offset starting at 1")] = 1,
+    limit: Annotated[int, Query(le=100, ge=1, description="Items per page (1-100)")] = 100
+):
+    cursor = eleicao_collection.find().skip((page - 1) * limit).limit(limit)
+    return eleicao_entities_from_db(cursor)
