@@ -1,12 +1,28 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, status
-from fastapi.responses import JSONResponse
-import zipfile
-import pandas as pd
-from io import BytesIO
+from fastapi import APIRouter, HTTPException, Query, Request, status, Depends, File, UploadFile # File e Upload para envio de arquivos 
+from typing import Annotated
+from models.eleicao import EleicaoCreate, EleicaoBase, EleicaoPublic, EleicaoUpdate
+from pymongo.collection import Collection
+from pymongo import ReturnDocument
+from utils.utils import validate_object_id
+from schemas.eleicao import eleicao_entity_from_db, eleicao_entities_from_db, eleicao_entity
 
-# Definindo o roteador
+# Para abrir os arquivos zip e csv
+import zipfile 
+from io import BytesIO
+import pandas as pd
+
+ERROR_DETAIL = "Some error occurred: {e}"
+NOT_FOUND = "Not found"
+
+async def get_eleicao_collection(request: Request) -> Collection:
+    """Returns the candidato collection from MongoDB"""
+    return request.app.database["eleicao"]
+
+EleicaoCollection = Annotated[Collection, Depends(get_eleicao_collection)]
+
 router = APIRouter()
 
+# ------------ FUNÇÕES AUXILIDARES ------------
 # Função para tratar o arquivo ZIP de candidatos
 async def tratar_zip_candidatos(candidatos_file):
     # Definição das colunas desejadas para os candidatos
@@ -18,85 +34,114 @@ async def tratar_zip_candidatos(candidatos_file):
     # Carregar o arquivo ZIP de Candidatos
     dados_zip_candidatos = await candidatos_file.read()
     with zipfile.ZipFile(BytesIO(dados_zip_candidatos), 'r') as zip_ref_candidatos:
-        # Filtrar apenas os arquivos CSV de candidatos
-        arquivos_candidatos = [f for f in zip_ref_candidatos.namelist() if f.endswith('.csv')]
-                
+        # Filtrar apenas os arquivos CSV que contêm "BRASIL" no nome
+        arquivos_candidatos = [f for f in zip_ref_candidatos.namelist() if f.endswith('.csv') and 'BRASIL' in f]
+        
+        # Se não encontrar nenhum arquivo com "BRASIL" no nome, lançar erro
+        if not arquivos_candidatos:
+            raise HTTPException(status_code=400, detail="Nenhum arquivo CSV contendo 'BRASIL' no nome foi encontrado no ZIP.")
+        
         dataframes_candidatos = []
         for arquivo_candidato in arquivos_candidatos:
-            if "consulta_cand" not in arquivo_candidato:
-                raise HTTPException(status_code=400, detail=f"O arquivo CSV {arquivo_candidato} não contém 'consulta_cand' no nome. Verifique o conteúdo e tente novamente.")
-        
             with zip_ref_candidatos.open(arquivo_candidato) as csv_file_candidato:
                 try:
-                    df_candidato = pd.read_csv(csv_file_candidato, sep=';', encoding='latin1', usecols=colunas_desejadas_candidatos)
-                    dataframes_candidatos.append(df_candidato)
+                    # Ler o CSV com as colunas desejadas
+                    df_eleicao = pd.read_csv(csv_file_candidato, sep=';', encoding='latin1', usecols=colunas_desejadas_candidatos)
+                    dataframes_candidatos.append(df_eleicao)
                 except ValueError as e:
                     raise HTTPException(status_code=400, detail=f"Erro ao ler o arquivo CSV de candidatos: {str(e)}")
         
         # Concatenar todos os DataFrames de candidatos
         df_candidatos = pd.concat(dataframes_candidatos, ignore_index=True)
-    
-    # Remover duplicatas com base no código da eleição
-    return df_candidatos.drop_duplicates(subset=['CD_ELEICAO'])
-
-# Função para tratar o arquivo ZIP de vagas
-async def tratar_zip_vagas(vagas_file):
-    # Carregar o arquivo ZIP de Vagas
-    dados_zip_vagas = await vagas_file.read()
-    with zipfile.ZipFile(BytesIO(dados_zip_vagas), 'r') as zip_ref_vagas:
-        # Filtrar apenas os arquivos CSV de vagas
-        arquivos_vagas = [f for f in zip_ref_vagas.namelist() if f.endswith('.csv')]
-            
-        dataframes_vagas = []
-        for arquivo_vaga in arquivos_vagas:
-            if "consulta_vagas" not in arquivo_vaga:
-                raise HTTPException(status_code=400, detail=f"O arquivo CSV {arquivo_vaga} não contém 'consulta_vagas' no nome. Verifique o conteúdo e tente novamente.")
-            with zip_ref_vagas.open(arquivo_vaga) as csv_file_vaga:
-                try:
-                    df_vaga = pd.read_csv(csv_file_vaga, sep=';', encoding='latin1', usecols=['CD_ELEICAO', 'QT_VAGA'])
-                    dataframes_vagas.append(df_vaga)
-                except ValueError as e:
-                    raise HTTPException(status_code=400, detail=f"Erro ao ler o arquivo CSV de vagas: {str(e)}")
-        
-        # Concatenar todos os DataFrames de vagas
-        df_vagas = pd.concat(dataframes_vagas, ignore_index=True)
-    
-    return df_vagas
-
-# Função para retornar os dados limpos e processados
-def retornar_dados_limpos(df_candidatos_unico, df_vagas):
-    # Somar os valores de 'QT_VAGA' para cada 'CD_ELEICAO'
-    df_vagas_sum = df_vagas.groupby('CD_ELEICAO')['QT_VAGA'].sum().reset_index()
-
-    # Agora, unir os dados de vagas com a soma dos valores de 'QT_VAGA' para cada código de eleição
-    df_final = pd.merge(df_candidatos_unico, df_vagas_sum, on='CD_ELEICAO', how='left')
-
-    # Preencher valores ausentes (NaN) com 0
-    df_final['QT_VAGA'] = df_final['QT_VAGA'].fillna(0)
-    df_final['QT_VAGA'] = df_final['QT_VAGA'].astype(int)
-    df_final.columns = df_final.columns.str.lower()
-    return df_final
+  
+    # Remover duplicatas com base no código da eleição    
+    df_eleicao_unico = df_eleicao.drop_duplicates(subset=['CD_ELEICAO'])
+    # Converter a coluna de data  para datetime no formato correto
+    df_eleicao_unico['DT_ELEICAO'] = pd.to_datetime(df_eleicao_unico['DT_ELEICAO'], format="%d/%m/%Y", errors='coerce')
+    df_eleicao_unico.columns = df_eleicao_unico.columns.str.lower()
+   
+    return df_eleicao_unico
 
 # ------------ ROTAS ------------
-# Endpoint para upload dos dados da eleição
-@router.post("/upload/carregar-dados-eleicao", response_description="Import data to DB using a ZIP file.", status_code=status.HTTP_201_CREATED)
-async def upload_dados_eleicao(
-    candidatos_file: UploadFile = File(...),  # Primeiro arquivo de candidatos
-    vagas_file: UploadFile = File(...),  # Segundo arquivo de vagas
-):
-    if not vagas_file or not candidatos_file:
-        raise HTTPException(status_code=400, detail="Ambos os arquivos (vagas e candidatos) precisam ser enviados.")
-    
+# Inserção manual de eleição.
+@router.post("/", 
+    response_description="Registers a new Eleicao", 
+    status_code=status.HTTP_201_CREATED, response_model=EleicaoCreate)
+async def create_eleicao(eleicao_collection: EleicaoCollection, eleicao: EleicaoCreate):
     try:
-        # Processar os dados dos arquivos
-        df_candidatos_unico = await tratar_zip_candidatos(candidatos_file)
-        df_vagas = await tratar_zip_vagas(vagas_file)
+        eleicao_data = eleicao.model_dump()
+
+        if eleicao_collection.find_one({'cd_eleicao': eleicao_data['cd_eleicao']}) is not None:
+            raise HTTPException(status_code=400, detail=f"Eleição com cd_eleicao {eleicao_data['cd_eleicao']} já existe no banco de dados.")
+            # print(f"Eleição com cd_eleicao {eleicao_data['cd_eleicao']} já existe no banco de dados.")
+          
+        # Inserir o dado no banco de dados
+        result = eleicao_collection.insert_one(eleicao_data)
+
+        # Recuperar o documento inserido usando cd_eleicao
+        created = eleicao_collection.find_one({"cd_eleicao": eleicao_data["cd_eleicao"]})
+            
+        # Caso não tenha encontrado o documento após inserção, lançar erro
+        if not created:
+            raise HTTPException(status_code=500, detail="Failed to create Eleicao")
         
-        # Limpar e combinar os dados
-        eleicoes = retornar_dados_limpos(df_candidatos_unico, df_vagas)    
-        
-        # Retornar o resultado final como JSON
-        return JSONResponse(content=eleicoes.to_dict(orient="records"))
+        return eleicao_entity_from_db(created)
     
+    except HTTPException as http_exc:
+        # Captura e retorna a exceção específica HTTPException com o código de erro adequado
+        raise http_exc
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+
+# Fazer upload de arquivo zip para carregar os dados de eleição.
+@router.post("/upload/carregar-dados-eleicao", 
+    response_description="Import data to DB using a ZIP file.", 
+    status_code=status.HTTP_201_CREATED)
+async def upload_dados_eleicao(
+    eleicao_collection: EleicaoCollection,
+    candidatos_file: UploadFile = File(...)
+):
+    if not candidatos_file:
+        raise HTTPException(status_code=400, detail="É necessário enviar um arquivo ZIP.")
+
+    if not candidatos_file.filename.endswith(".zip"):
+        raise HTTPException(status_code=400, detail="O arquivo enviado não é um ZIP válido.")
+
+    try:
+        # Processar os dados do arquivo ZIP
+        df_eleicao_unico = await tratar_zip_candidatos(candidatos_file)
+
+        # Inserir os registros no banco de dados
+        for eleicao in df_eleicao_unico.to_dict(orient="records"):
+            dados_eleicao = eleicao_entity(eleicao)
+
+            # Verificar se já existe no banco de dados
+            if eleicao_collection.find_one({'cd_eleicao': dados_eleicao['cd_eleicao']}):
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Eleição com cd_eleicao {dados_eleicao['cd_eleicao']} já existe no banco de dados."
+                )
+
+            # Inserir no banco de dados
+            eleicao_collection.insert_one(dados_eleicao)
+
+        return {"message": "Dados importados com sucesso!", "total_registros": len(df_eleicao_unico)}
+
+    except HTTPException as http_exc:
+        raise http_exc  # Mantém o status correto
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+# Pegar 
+@router.get("/", 
+    response_description="Retrieves Eleicao", 
+    response_model=list[EleicaoPublic])
+async def read_eleicoes(
+    eleicao_collection: EleicaoCollection,
+    page: Annotated[int, Query(ge=1, description="Pagination offset starting at 1")] = 1,
+    limit: Annotated[int, Query(le=100, ge=1, description="Items per page (1-100)")] = 100
+):
+    cursor = eleicao_collection.find().skip((page - 1) * limit).limit(limit)
+    return eleicao_entities_from_db(cursor)
