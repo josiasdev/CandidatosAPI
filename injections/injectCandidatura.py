@@ -2,15 +2,16 @@ import sys
 import zipfile
 import pandas as pd
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).resolve().parent.parent))  # Adiciona o diretório raiz do projeto ao sys.path
 from schemas.Candidatura import candidatura_entity
 from config.database import mongodb_client
 
 # Caminhos dos arquivos
-ZIP_PATH_CANDIDATO = '/Users/robso/Downloads/dataset/consulta_cand_2024.zip'
+ZIP_PATH_CANDIDATO = '/home/rafael/Downloads/consulta_cand_2024.zip'
 CSV_FILENAME_CANDIDATO = 'consulta_cand_2024_BRASIL.csv'
 
-ZIP_PATH_CASSACAO = '/Users/robso/Downloads/dataset/motivo_cassacao_2024.zip'
+ZIP_PATH_CASSACAO = '/home/rafael/Downloads/motivo_cassacao_2024.zip'
 CSV_FILENAME_CASSACAO = 'motivo_cassacao_2024_BRASIL.csv'
 
 data_array = []
@@ -50,7 +51,7 @@ print('\n\n')
 print(merged_df.isnull().sum())
 
 # Conectar ao banco MongoDB
-db = mongodb_client['Candidatos']
+db = mongodb_client['eleicoes']
 collection = db['candidatura']
 
 for _, row in merged_df.iterrows():

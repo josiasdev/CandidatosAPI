@@ -76,7 +76,7 @@ print(merged_df.dtypes)
 print(merged_df.count())
 print(merged_df.isnull().sum())
 
-db = mongodb_client['Candidatos']
+db = mongodb_client['eleicoes']
 collection = db['bens_candidato']
 
 # Insere no MongoDB, tudo convertendo a dict

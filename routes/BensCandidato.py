@@ -174,3 +174,33 @@ async def delete_bens_candidato(
     except Exception as e:
         logger.error(f"Error deleting BensCandidato with id {id}: {e}")
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+    
+
+
+    
+
+@router.get("/media-partido-cargo")
+async def media_patrimonio_por_partido_e_cargo(
+    bens_candidato_collection: Collection = Depends(get_bens_candidato_collection)
+):
+    pipeline = [
+        {
+            "$group": {
+                "_id": {
+                    "sg_partido": "$sg_partido",
+                    "ds_cargo": "$ds_cargo"
+                },
+                "media_patrimonio": {"$avg": "$vr_bem_candidato"}
+            }
+        }
+    ]
+    resultados = list(bens_candidato_collection.aggregate(pipeline))
+    # Ajusta o retorno para um formato legível
+    return [
+        {
+            "sg_partido": doc["_id"]["sg_partido"],
+            "ds_cargo": doc["_id"]["ds_cargo"],
+            "media_patrimonio": doc["media_patrimonio"]
+        }
+        for doc in resultados
+    ]
