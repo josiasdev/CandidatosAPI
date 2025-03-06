@@ -39,9 +39,11 @@ async def create_bens_candidato(bens_candidato_collection: BensCandidatoCollecti
         
         if (created := bens_candidato_collection.find_one({"_id": result.inserted_id})) is None:
             raise HTTPException(500, "Failed to create BensCandidato")
-            
+        
+        logger.info(f"BensCandidato created with id: {result.inserted_id}")
         return bens_candidato_entity_from_db(created)
     except Exception as e:
+        logger.error(f"Error creating BensCandidato: {e}")
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
 @router.get("/", 
@@ -53,14 +55,18 @@ async def read_bens_candidatos(
     limit: Annotated[int, Query(le=100, ge=1, description="Items per page (1-100)")] = 100
 ):
     cursor = bens_candidato_collection.find().skip((page - 1) * limit).limit(limit)
+    logger.info(f"Retrieved BensCandidatos with pagination - page: {page}, limit: {limit}")
     return bens_candidato_entities_from_db(cursor)
 
 
 @router.get("/count", response_description="Get total BensCandidato count")
 async def read_bens_candidato_count(bens_candidato_collection: BensCandidatoCollection):
     try:
-        return {"count": bens_candidato_collection.count_documents({})}
+        count = bens_candidato_collection.count_documents({})
+        logger.info(f"Total BensCandidato count: {count}")
+        return {"count": count}
     except Exception as e:
+        logger.error(f"Error retrieving BensCandidato count: {e}")
         raise HTTPException(500, detail=ERROR_DETAIL.format(e=e))
 
 @router.get("/{id}",
@@ -72,9 +78,12 @@ async def read_bens_candidato(
 ):
     try:
         if (bens_candidato := bens_candidato_collection.find_one({"_id": id})) is None:
+            logger.warning(f"BensCandidato with id {id} not found")
             raise HTTPException(404, detail=NOT_FOUND)
+        logger.info(f"Retrieved BensCandidato with id: {id}")
         return bens_candidato_entity_from_db(bens_candidato)
     except Exception as e:
+        logger.error(f"Error retrieving BensCandidato with id {id}: {e}")
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
 @router.patch("/{id}",
@@ -103,10 +112,13 @@ async def update_bens_candidato(
         )
         
         if not updated:
+            logger.warning(f"BensCandidato with id {id} not found for update")
             raise HTTPException(404, detail=NOT_FOUND)
-            
+        
+        logger.info(f"BensCandidato with id {id} updated")
         return bens_candidato_entity_from_db(updated)
     except Exception as e:
+        logger.error(f"Error updating BensCandidato with id {id}: {e}")
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
 @router.put("/{id}", 
@@ -135,10 +147,13 @@ async def fully_update_bens_candidato(
         )
         
         if not updated:
+            logger.warning(f"BensCandidato with id {id} not found for full update")
             raise HTTPException(404, detail=NOT_FOUND)
-            
+        
+        logger.info(f"BensCandidato with id {id} fully updated")
         return bens_candidato_entity_from_db(updated)
     except Exception as e:
+        logger.error(f"Error fully updating BensCandidato with id {id}: {e}")
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
 @router.delete("/{id}",
@@ -151,8 +166,11 @@ async def delete_bens_candidato(
         result = bens_candidato_collection.delete_one({"_id": id})
         
         if result.deleted_count == 0:
+            logger.warning(f"BensCandidato with id {id} not found for deletion")
             raise HTTPException(404, detail=NOT_FOUND)
-            
+        
+        logger.info(f"BensCandidato with id {id} deleted successfully")
         return {"status": "success", "message": "BensCandidato deleted successfully"}
     except Exception as e:
+        logger.error(f"Error deleting BensCandidato with id {id}: {e}")
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
