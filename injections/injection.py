@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 import re
 import zipfile
 import pandas as pd
@@ -6,7 +10,7 @@ from config.database import mongodb_client
 from models.candidato import CandidatoCreate
 
 ZIP_PATH = 'resources/consulta_cand_2024.zip'
-CSV_PATTERN = re.compile(r'^.*\d{4}_(BRASIL|[A-Z]{2})\.csv$')
+CSV_PATTERN = re.compile(r'^.*\d{4}_BRASIL\.csv$')
 
 with zipfile.ZipFile(ZIP_PATH, 'r') as zip_ref:
     total_candidatos = 0
@@ -32,19 +36,19 @@ with zipfile.ZipFile(ZIP_PATH, 'r') as zip_ref:
     
 
             total_candidatos += len(candidatos)
-            # db = mongodb_client['eleicoes']
-            # collection = db['candidato']
-            # for candidato in candidatos.to_dict(orient="records"):
-            #     try:
-            #         candidato_data = candidato_entity(candidato)
-            #         if(collection.find_one({'nr_titulo_eleitoral_candidato': candidato_data['nr_titulo_eleitoral_candidato']}) is not None):
-            #             print('Candidato already exists')
-            #         else:
-            #             result = collection.insert_one(candidato_data)
+            db = mongodb_client['eleicoes']
+            collection = db['candidato']
+            for candidato in candidatos.to_dict(orient="records"):
+                try:
+                    candidato_data = candidato_entity(candidato)
+                    if(collection.find_one({'nr_titulo_eleitoral_candidato': candidato_data['nr_titulo_eleitoral_candidato']}) is not None):
+                        print('Candidato already exists')
+                    else:
+                        result = collection.insert_one(candidato_data)
                         
-            #             if (created := collection.find_one({"_id": result.inserted_id})) is None:
-            #                 print('Something went wrong and the data was not inserted')
-            #         print('Operation finshed with success!')
-            #     except Exception as e:
-            #         print("Something went wrong", e)
+                        if (created := collection.find_one({"_id": result.inserted_id})) is None:
+                            print('Something went wrong and the data was not inserted')
+                    print('Operation finshed with success!')
+                except Exception as e:
+                    print("Something went wrong", e)
     print(total_candidatos)
