@@ -43,7 +43,7 @@ async def log_requests(request: Request, call_next):
 @app.on_event("startup")
 async def startup_db_client():
     app.mongodb_client = MongoClient("mongodb://localhost:27017")
-    app.database = app.mongodb_client['Candidatos']
+    app.database = app.mongodb_client['eleicoes']
     print("Connected to the MongoDB database!")
 
 @app.on_event("shutdown")
@@ -58,4 +58,4 @@ async def homepage():
 
 app.include_router(candidatos_router, prefix="/candidatos", tags=["Candidatos"])
 app.include_router(bens_candidato_router, prefix="/bens_candidato", tags=["BensCandidato"])
-app.include_router(candidatura_router, prefix="/candidatura", tags=["Candidatura"])
+# app.include_router(candidatura_router, prefix="/candidaturas", tags=["Candidatura"])

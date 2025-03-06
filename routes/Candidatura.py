@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, Request, status, Depends
 from typing import Annotated
-from models.Candidatura import CandidaturaBase, CandidaturaCreate, CandidaturaPublic, CandidaturaUpdate
+from models.candidatura import CandidaturaBase, CandidaturaCreate, CandidaturaPublic, CandidaturaUpdate
 from pymongo.collection import Collection
 from pymongo import ReturnDocument
 from utils.utils import validate_object_id
