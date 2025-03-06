@@ -39,6 +39,8 @@ with zipfile.ZipFile(ZIP_PATH_CANDIDATOS, 'r') as zip_ref_candidatos:
 
 # Remover duplicatas com base no código da eleição
 df_eleicao_unico = df_eleicao.drop_duplicates(subset=['CD_ELEICAO'])
+# Converter a coluna de data  para datetime no formato correto
+df_eleicao_unico['DT_ELEICAO'] = pd.to_datetime(df_eleicao_unico['DT_ELEICAO'], format="%d/%m/%Y", errors='coerce')
 df_eleicao_unico.columns = df_eleicao_unico.columns.str.lower()
 print("Tratamento dos dados finalizados.")
 print(f"Total de dados a serem carregados: {df_eleicao_unico.shape[0]}")
