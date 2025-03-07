@@ -8,7 +8,7 @@ from utils.utils import validate_object_id
 from models.eleicao import EleicaoCreate, EleicaoBase, EleicaoPublic, EleicaoUpdate
 from schemas.eleicao import eleicao_entity_from_db, eleicao_entities_from_db, eleicao_entity
 # Outros imports
-import datetime
+from datetime import datetime
 from typing import List, Optional
 import logging
 # Para abrir os arquivos zip e csv
@@ -180,6 +180,59 @@ async def list_eleicoes(
         logger.error(ERROR_DETAIL.format(e=e))
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
+# Filtro por data
+@router.get("/filtrar/data", response_description="Retrieves Eleicoes using dates", response_model=List[EleicaoPublic])
+async def list_eleicoes(
+    eleicao_collection: EleicaoCollection,
+    data_inicio: Optional[str] = Query(None, description="Data inicial (formato YYYY-MM-DD)"),
+    data_fim: Optional[str] = Query(None, description="Data final (formato YYYY-MM-DD)"),
+    skip: int = Query(0, ge=0, description="Número de registros para pular"),
+    limit: int = Query(10, ge=1, le=100, description="Número máximo de registros a retornar")
+):
+    try:
+        # Construir o filtro dinâmico
+        query = {}
+            
+        # Filtros de data
+        date_filter = {}
+        if data_inicio:
+            try:
+                date_filter["$gte"] = datetime.fromisoformat(data_inicio)
+            except ValueError:
+                logger.error(f"Formato de data inválido para 'data_inicio': Use YYYY-MM-DD")
+                raise HTTPException(status_code=400, detail=f"Formato de data inválido para 'data_inicio': Use YYYY-MM-DD")
+                
+        if data_fim:
+            try:
+                date_filter["$lte"] = datetime.fromisoformat(data_fim)
+            except ValueError:
+                logger.error(f"Formato de data inválido para 'data_fim': Use YYYY-MM-DD")
+                raise HTTPException(status_code=400, detail=f"Formato de data inválido para 'data_fim': Use YYYY-MM-DD")
+                
+        if date_filter:
+            query["dt_eleicao"] = date_filter
+        
+        # Executar consulta com paginação
+        cursor = eleicao_collection.find(query).skip(skip).limit(limit)
+        
+        # Converter para lista de entidades
+        eleicoes = [eleicao_entity_from_db(eleicao) for eleicao in cursor]
+        
+        # Verificar se encontrou resultados
+        if not eleicoes:
+            logger.error(f"Eleição não encontrada a partir dos filtros.")
+            raise HTTPException(404, detail=NOT_FOUND)
+        
+        logger.info(f"Eleição encontrada a partir dos filtros.")            
+        return eleicoes
+        
+    except HTTPException as http_exc:
+        # Captura e retorna a exceção específica HTTPException com o código de erro adequado
+        raise http_exc
+    except Exception as e:
+        logger.error(ERROR_DETAIL.format(e=e))
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+    
 # Contar registros
 @router.get("/count", response_description="Get total Eleição count")
 async def read_eleicao_count(eleicao_collection: EleicaoCollection):
