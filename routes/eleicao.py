@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Request, status, Depends, File, UploadFile # File e Upload para envio de arquivos 
+from fastapi import Path, APIRouter, HTTPException, Query, Request, status, Depends, File, UploadFile # File e Upload para envio de arquivos 
 from typing import Annotated
 from models.eleicao import EleicaoCreate, EleicaoBase, EleicaoPublic, EleicaoUpdate
 from pymongo.collection import Collection
@@ -134,7 +134,7 @@ async def upload_dados_eleicao(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-# Pegar 
+# Pegar todos os registros
 @router.get("/", 
     response_description="Retrieves Eleicao", 
     response_model=list[EleicaoPublic])
@@ -145,3 +145,94 @@ async def read_eleicoes(
 ):
     cursor = eleicao_collection.find().skip((page - 1) * limit).limit(limit)
     return eleicao_entities_from_db(cursor)
+
+# Deletar via ID do MongoDB
+# @router.delete("/{id}",
+#     response_description="Deletes a Eleicao by id")
+# async def delete_eleicao_by_id(
+#     eleicao_collection: EleicaoCollection, 
+#     id: str = Depends(validate_object_id)
+# ):
+#     try:
+#         result = eleicao_collection.delete_one({"_id": id})
+        
+#         if result.deleted_count == 0:
+#             raise HTTPException(404, detail=NOT_FOUND)
+            
+#         return {"status": "success", "message": "Eleição deleted successfully"}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+
+@router.delete("/{id}",
+    response_description="Deletes a Eleicao")
+async def delete_cd_eleicao(
+    eleicao_collection: EleicaoCollection,
+    id: int
+):
+    try:
+        result = eleicao_collection.delete_one({"cd_eleicao": id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(404, detail=NOT_FOUND)
+            
+        return {"status": "success", "message": "Eleicao deleted successfully"}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+    
+# @router.put("/{id}", 
+#     response_description="Fully update a BensCandidato", 
+#     response_model=EleicaoPublic)
+# async def fully_update_eleicao(
+#     eleicao_collection: EleicaoCollection, 
+#     eleicao: EleicaoBase,
+#     id: int
+# ):
+#     try:
+#         # update_data = bens_candidato.model_dump()
+        
+#         # # Converte campos datetime.date para string
+#         # if 'dt_ult_atual_bem_candidato' in update_data and isinstance(update_data['dt_ult_atual_bem_candidato'], date):
+#         #     update_data['dt_ult_atual_bem_candidato'] = update_data['dt_ult_atual_bem_candidato'].isoformat()
+        
+#         # # Converte campos datetime.time para string
+#         # if 'hh_ult_atual_bem_candidato' in update_data and isinstance(update_data['hh_ult_atual_bem_candidato'], time):
+#         #     update_data['hh_ult_atual_bem_candidato'] = update_data['hh_ult_atual_bem_candidato'].isoformat()
+        
+#         # updated = bens_candidato_collection.find_one_and_update(
+#         #     {"_id": id},
+#         #     {"$set": update_data},
+#         #     return_document=ReturnDocument.AFTER
+#         # )
+        
+#         # if not updated:
+#         #     raise HTTPException(404, detail=NOT_FOUND)
+            
+#         # return bens_candidato_entity_from_db(updated)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+
+@router.put("/{id}", 
+    response_description="Fully update a Eleicao", 
+    response_model=EleicaoPublic)
+async def fully_update_eleicao(
+    eleicao_collection: EleicaoCollection, 
+    eleicao: EleicaoBase,
+    id: int
+):
+    try:
+        update_data = eleicao.model_dump()
+        
+        updated = eleicao_collection.find_one_and_update(
+            {"cd_eleicao": id},
+            {"$set": update_data},
+            return_document=ReturnDocument.AFTER
+        )
+        
+        if not updated:
+            raise HTTPException(404, detail=NOT_FOUND)
+        
+        return eleicao_entity_from_db(updated)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
