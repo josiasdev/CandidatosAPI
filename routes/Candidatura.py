@@ -144,6 +144,9 @@ async def delete_candidatura(
         
         logger.info(f"Deleted Candidatura with id: {id}")
         return {"status": "success", "message": "Candidatura deleted successfully"}
+    
+    except HTTPException as e:
+        raise e
     except Exception as e:
         logger.error(f"Error deleting Candidatura with id {id}: {e}")
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
