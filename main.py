@@ -5,6 +5,7 @@ from routes.candidatos import router as candidatos_router
 from routes.BensCandidato import router as bens_candidato_router
 from routes.Candidatura import router as candidatura_router
 from routes.eleicao import router as eleicao_router
+from routes.InfoCandidato import router as info_candidato_router
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -60,4 +61,5 @@ async def homepage():
 app.include_router(candidatos_router, prefix="/candidatos", tags=["Candidatos"])
 app.include_router(bens_candidato_router, prefix="/bens_candidato", tags=["BensCandidato"])
 app.include_router(eleicao_router, prefix="/eleicao", tags=["Eleicao"])
+app.include_router(info_candidato_router, prefix="/Info_Candidato", tags=["Informações de Candidatos"])
 # app.include_router(candidatura_router, prefix="/candidaturas", tags=["Candidatura"])
