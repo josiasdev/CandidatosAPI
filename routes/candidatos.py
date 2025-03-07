@@ -3,9 +3,8 @@ from typing import Annotated
 from models.candidato import CandidatoCreate, CandidatoBase, CandidatoPublic, CandidatoUpdate
 from pymongo.collection import Collection
 from pymongo import ReturnDocument
-from utils.utils import validate_object_id
 
-from schemas.candidato import candidato_entity_from_db, candidato_entities_from_db
+from schemas.candidato import candidato_entity, candidato_entities
 
 ERROR_DETAIL = "Some error occurred: {e}"
 NOT_FOUND = "Not found"
@@ -29,7 +28,7 @@ async def create_candidato(accident_collection: CandidatoCollection, accident: C
         if (created := accident_collection.find_one({"_id": result.inserted_id})) is None:
             raise HTTPException(500, "Failed to create Candidato")
             
-        return candidato_entity_from_db(created)
+        return candidato_entity(created)
     except Exception as e:
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
@@ -58,89 +57,97 @@ async def read_candidatos(
     limit: Annotated[int, Query(le=100, ge=1, description="Items per page (1-100)")] = 100
 ):
     cursor = candidato_collection.find().skip((page - 1) * limit).limit(limit)
-    return candidato_entities_from_db(cursor)
+    return candidato_entities(cursor)
 
-# @router.get("/count", response_description="Get total Accident count")
-# async def read_accident_count(accident_collection: AccidentCollection):
-#     try:
-#         return {"count": accident_collection.count_documents({})}
-#     except Exception as e:
-#         raise HTTPException(500, detail=ERROR_DETAIL.format(e=e))
+@router.get("/count", response_description="Get total Candidato count")
+async def read_candidato_count(candidato_collection: CandidatoCollection):
+    try:
+        return {"count": candidato_collection.count_documents({})}
+    except Exception as e:
+        raise HTTPException(500, detail=ERROR_DETAIL.format(e=e))
 
-# @router.get("/{id}",
-#     response_description="Retrieves Individual Accident by ID", 
-#     response_model=AccidentPublic)
-# async def read_accident(
-#     accident_collection: AccidentCollection, 
-#     id: str = Depends(validate_object_id)
-# ):
-#     try:
-#         if (accident := accident_collection.find_one({"_id": id})) is None:
-#             raise HTTPException(404, detail=NOT_FOUND)
-#         return accident_entity_from_db(accident)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+@router.get("/{id}",
+    response_description="Retrieves Individual Candidato by nr_titulo", 
+    response_model=CandidatoPublic)
+async def read_candidato(
+    candidato_collection: CandidatoCollection, 
+    id: int
+):
+    try:
+        if (candidato := candidato_collection.find_one({"nr_titulo_eleitoral_candidato": id})) is None:
+            raise HTTPException(404, detail=NOT_FOUND)
+        return candidato_entity(candidato)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
-# @router.patch("/{id}",
-#     response_description="Partially updates an Accident", 
-#     response_model=AccidentPublic)
-# async def update_accident(
-#     accident_collection: AccidentCollection, 
-#     accident: AccidentUpdate,
-#     id: str = Depends(validate_object_id)
-# ):
-#     try:
-#         update_data = accident.model_dump(exclude_unset=True)
+@router.patch("/{id}",
+    response_description="Partially updates an Candidato", 
+    response_model=CandidatoPublic)
+async def update_candidato(
+    candidato_collection: CandidatoCollection, 
+    candidato: CandidatoUpdate,
+    id: int
+):
+    try:
+        update_data = candidato.model_dump(exclude_unset=True)
         
-#         updated = accident_collection.find_one_and_update(
-#             {"_id": id},
-#             {"$set": update_data},
-#             return_document=ReturnDocument.AFTER
-#         )
+        updated = candidato_collection.find_one_and_update(
+            {"nr_titulo_eleitoral_candidato": id},
+            {"$set": update_data},
+            return_document=ReturnDocument.AFTER
+        )
         
-#         if not updated:
-#             raise HTTPException(404, detail=NOT_FOUND)
+        if not updated:
+            raise HTTPException(404, detail=NOT_FOUND)
             
-#         return accident_entity_from_db(updated)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+        return candidato_entity(updated)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
-# @router.put("/{id}", 
-#     response_description="Fully update an Accident", 
-#     response_model=AccidentPublic)
-# async def fully_update_accident(
-#     accident_collection: AccidentCollection, 
-#     accident: AccidentBase,
-#     id: str = Depends(validate_object_id)
-# ):
-#     try:
-#         update_data = accident.model_dump()
+@router.put("/{id}", 
+    response_description="Fully update an Candidato", 
+    response_model=CandidatoPublic)
+async def fully_update_candidato(
+    candidato_collection: CandidatoCollection, 
+    candidato: CandidatoBase,
+    id: int
+):
+    try:
+        update_data = candidato.model_dump()
         
-#         updated = accident_collection.find_one_and_update(
-#             {"_id": id},
-#             {"$set": update_data},
-#             return_document=ReturnDocument.AFTER
-#         )
+        updated = candidato_collection.find_one_and_update(
+            {"nr_titulo_eleitoral_candidato": id},
+            {"$set": update_data},
+            return_document=ReturnDocument.AFTER
+        )
         
-#         if not updated:
-#             raise HTTPException(404, detail=NOT_FOUND)
+        if not updated:
+            raise HTTPException(404, detail=NOT_FOUND)
             
-#         return accident_entity_from_db(updated)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+        return candidato_entity(updated)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
-# @router.delete("/{id}",
-#     response_description="Deletes an Accident")
-# async def delete_accident(
-#     accident_collection: AccidentCollection, 
-#     id: str = Depends(validate_object_id)
-# ):
-#     try:
-#         result = accident_collection.delete_one({"_id": id})
+@router.delete("/{id}",
+    response_description="Deletes an Candidato")
+async def delete_candidato(
+    candidato_collection: CandidatoCollection, 
+    id: int
+):
+    try:
+        result = candidato_collection.delete_one({"nr_titulo_eleitoral_candidato": id})
         
-#         if result.deleted_count == 0:
-#             raise HTTPException(404, detail=NOT_FOUND)
+        if result.deleted_count == 0:
+            raise HTTPException(404, detail=NOT_FOUND)
             
-#         return {"status": "success", "message": "Accident deleted successfully"}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+        return {"status": "success", "message": "Candidato deleted successfully"}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))

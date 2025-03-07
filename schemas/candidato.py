@@ -12,13 +12,5 @@ def candidato_entity(entity: dict) -> CandidatoCreate:
         "ds_ocupacao": entity['ds_ocupacao'] 
     }
 
-def candidato_entity_from_db(entity: dict) -> CandidatoPublic:
-    accident = {
-        'id_info_candidato': str(entity['id_info_candidato']),
-        **candidato_entity(entity)
-    }
-    
-    return accident
-
-def candidato_entities_from_db(entities: list) -> list[CandidatoPublic]:
-    return [candidato_entity_from_db(entity) for entity in entities]
+def candidato_entities(entities: list) -> list[CandidatoPublic]:
+    return [candidato_entity(entity) for entity in entities]
