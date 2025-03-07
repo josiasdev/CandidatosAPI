@@ -180,7 +180,7 @@ async def list_eleicoes(
         logger.error(ERROR_DETAIL.format(e=e))
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
-# Daqui pra baixo to fazendo logging
+# Contar registros
 @router.get("/count", response_description="Get total Eleição count")
 async def read_eleicao_count(eleicao_collection: EleicaoCollection):
     try:
