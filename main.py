@@ -29,7 +29,7 @@ app.add_middleware(
 LOG_FILE = "app.log"
 logger = logging.getLogger("app_logger")
 logger.setLevel(logging.INFO)
-handler = RotatingFileHandler(LOG_FILE, maxBytes=1000000, backupCount=5)
+handler = RotatingFileHandler(LOG_FILE, maxBytes=1000000, backupCount=5, encoding="utf-8")
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
