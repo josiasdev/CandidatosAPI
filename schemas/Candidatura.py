@@ -1,4 +1,4 @@
-from models.candidatura import CandidaturaCreate, CandidaturaPublic
+from models.Candidatura import CandidaturaCreate, CandidaturaPublic
 
 def candidatura_entity(entity: dict) -> CandidaturaCreate:
     return {
