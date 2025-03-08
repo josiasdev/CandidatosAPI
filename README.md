@@ -1,3 +1,4 @@
+### CandidatosApi
 Candidatos API é uma API REST desenvolvida para fornecer acesso a dados relacionados a candidaturas, eleições, partidos, e análises visuais dessas informações. A aplicação foi construída utilizando FastAPI e fornece documentação interativa via Swagger UI para facilitar o consumo dos seus serviços.
 
 ## Visão Geral
