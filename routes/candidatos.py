@@ -37,7 +37,7 @@ async def filter_candidatos_by_name(
     candidato_collection: CandidatoCollection,
     name: str | None = None,  
     page: int = 1,
-    limit: int = 10
+    limit: int = 100
 ):
     query_filter = {}
 
