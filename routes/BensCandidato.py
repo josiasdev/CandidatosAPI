@@ -6,7 +6,9 @@ from pymongo import ReturnDocument
 from datetime import date, time
 from utils.utils import validate_object_id
 from schemas.BensCandidato import bens_candidato_entity_from_db, bens_candidato_entities_from_db
+from schemas.Candidatura import candidatura_entity_from_db
 import logging
+from bson import ObjectId
 
 ERROR_DETAIL = "Some error occurred: {e}"
 NOT_FOUND = "Not found"
@@ -16,7 +18,16 @@ async def get_bens_candidato_collection(request: Request) -> Collection:
     return request.app.database["bens_candidato"]
 
 BensCandidatoCollection = Annotated[Collection, Depends(get_bens_candidato_collection)]
+
+async def get_candidatura_collection(request: Request) -> Collection:
+    """Returns the candidatura collection from MongoDB"""
+    return request.app.database["candidatura"]
+
+CandidaturaCollection = Annotated[Collection, Depends(get_candidatura_collection)]
+
 logger = logging.getLogger("app_logger")
+
+
 
 router = APIRouter()
 
@@ -176,31 +187,114 @@ async def delete_bens_candidato(
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
     
 
+# @router.get("/media/todos", response_description="Calcula a média dos bens de todos os candidatos com paginação")
+# async def calcular_media_todos_candidatos(
+#     bens_candidato_collection: BensCandidatoCollection,
+#     ordem: str = Query("desc", enum=["asc", "desc"]),  # Ordenação opcional
+#     limit: int = Query(10, ge=1, le=100),  # Limite de resultados por página (1 a 100)
+#     page: int = Query(1, ge=1)  # Página atual (mínimo 1)
+# ):
+#     try:
+#         skip = (page - 1) * limit  # Cálculo do offset para paginação
+
+#         pipeline = [
+#             {
+#                 "$group": {
+#                     "_id": "$sq_candidato",
+#                     "media_bens": {"$avg": "$vr_bem_candidato"}
+#                 }
+#             },
+#             {
+#                 "$sort": {"media_bens": 1 if ordem == "asc" else -1}  # Ordenação crescente/decrescente
+#             },
+#             {
+#                 "$skip": skip  # Pular registros para paginação
+#             },
+#             {
+#                 "$limit": limit  # Limitar número de registros retornados
+#             }
+#         ]
+#         result = list(bens_candidato_collection.aggregate(pipeline))
+
+#         if not result:
+#             logger.warning("Nenhum bem encontrado para candidatos nesta página")
+#             raise HTTPException(status_code=404, detail="Nenhum bem encontrado para esta página")
+
+#         # Formatando o retorno
+#         candidatos_media = [{"sq_candidato": r["_id"], "media_bens": r["media_bens"]} for r in result]
+
+#         logger.info(f"Página {page} carregada com sucesso ({len(candidatos_media)} candidatos).")
+#         return {
+#             "pagina_atual": page,
+#             "limite_por_pagina": limit,
+#             "total_resultados": len(candidatos_media),
+#             "dados": candidatos_media
+#         }
+
+#     except Exception as e:
+#         logger.error(f"Erro ao calcular média com paginação: {e}")
+#         raise HTTPException(status_code=500, detail=f"Erro ao calcular média: {e}")
+
+# @router.get("/bens/{sq_candidato}", response_description="Lista os bens de um candidato específico")
+# async def listar_bens_candidato(
+#     sq_candidato: str,
+#     bens_candidato_collection: BensCandidatoCollection
+# ):
+#     bens = list(bens_candidato_collection.find({"sq_candidato": sq_candidato}, {"_id": 0}))
+
+#     if not bens:
+#         raise HTTPException(status_code=404, detail="Nenhum bem encontrado para este candidato")
+
+#     return {"sq_candidato": sq_candidato, "bens": bens}
+
+# //////////////tudo abaixo sao tentativas//////////////////////////////////
+
+
+@router.get("/candidatura/{id}/bens", response_description="Recupera uma candidatura por ID e calcula a média dos bens de todos os candidatos")
+async def read_candidatura_e_calcular_media(
+    candidatura_collection: CandidaturaCollection,
+    bens_candidato_collection: BensCandidatoCollection,
+    id: int,
+    ordem: str = Query("desc", enum=["asc", "desc"], description="Ordenação da média dos bens"),
+    limit: int = Query(10, ge=1, le=100, description="Limite de resultados por página"),
+    page: int = Query(1, ge=1, description="Número da página")
+):
+    try:
+    
+        # Recupera a candidatura específica por ID
+        if (candidatura := candidatura_collection.find_one({"sq_candidato": id})) is None:
+            raise HTTPException(404, detail=NOT_FOUND)
+        candidatura_data = candidatura_entity_from_db(candidatura)
+
+        
+        # Calcula a média dos bens de todos os candidatos com paginação
+        skip = (page - 1) * limit
+        pipeline = [
+            {"$group": {"_id": id, "media_bens": {"$avg": "$vr_bem_candidato"}}},
+            {"$sort": {"media_bens": 1 if ordem == "asc" else -1}},
+            {"$skip": skip},
+            {"$limit": limit}
+        ]
+        result = list(bens_candidato_collection.aggregate(pipeline))
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Nenhum bem encontrado para esta página")
+        
+        def format_currency(value):
+            return "{:,.2f}".format(value).replace(",", "X").replace(".", ",").replace("X", ".")
+        
+        candidatos_media = [{ "media_bens": format_currency(round(r["media_bens"], 2))} for r in result]
 
     
+        
+        return {
+            "candidatura": candidatura_data,
+            "pagina_atual": page,
+            "limite_por_pagina": limit,
+            "total_resultados": len(candidatos_media),
+            "dados": candidatos_media
+        }
+    
 
-@router.get("/media-partido-cargo")
-async def media_patrimonio_por_partido_e_cargo(
-    bens_candidato_collection: Collection = Depends(get_bens_candidato_collection)
-):
-    pipeline = [
-        {
-            "$group": {
-                "_id": {
-                    "sg_partido": "$sg_partido",
-                    "ds_cargo": "$ds_cargo"
-                },
-                "media_patrimonio": {"$avg": "$vr_bem_candidato"}
-            }
-        }
-    ]
-    resultados = list(bens_candidato_collection.aggregate(pipeline))
-    # Ajusta o retorno para um formato legível
-    return [
-        {
-            "sg_partido": doc["_id"]["sg_partido"],
-            "ds_cargo": doc["_id"]["ds_cargo"],
-            "media_patrimonio": doc["media_patrimonio"]
-        }
-        for doc in resultados
-    ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao recuperar candidatura e calcular média dos bens: {e}")
