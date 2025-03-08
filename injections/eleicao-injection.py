@@ -9,7 +9,7 @@ from config.database import mongodb_client
 from pydantic import ValidationError
 
 # Caminho dos arquivos ZIP e das colunas desejadas
-ZIP_PATH_CANDIDATOS = '/Users/robso/Downloads/dataset/consulta_cand_2024.zip'
+ZIP_PATH_CANDIDATOS = '../resources/consulta_cand_2024.zip'
 
 
 # Colunas para realizar o tratamento
