@@ -65,9 +65,6 @@ Rotas que geram gráficos e visualizações para facilitar a compreensão dos da
 - **GET /candidatura/chart/eleitos_estado**  
   Fornece uma visualização dos candidatos eleitos organizados por estado.
 
-- **GET /candidatura/chart/top_spenders**  
-  Lista os top 2000 candidatos com maiores despesas de campanha.
-
 ### Rotas de Eleição
 Rota dedicadas ao gerenciamento e consulta de informações sobre eleições.
 
