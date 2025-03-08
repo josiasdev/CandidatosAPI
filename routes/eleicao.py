@@ -16,6 +16,22 @@ import zipfile
 from io import BytesIO
 import pandas as pd
 
+from models.candidato import CandidatoCreate, CandidatoBase, CandidatoPublic, CandidatoUpdate
+from schemas.candidato import candidato_entity, candidato_entities
+from models.candidatura import CandidaturaBase, CandidaturaCreate, CandidaturaPublic, CandidaturaUpdate
+from schemas.Candidatura import candidatura_entity_from_db, candidatura_entities_from_db
+
+async def get_candidato_collection(request: Request) -> Collection:
+    """Returns the candidato collection from MongoDB"""
+    return request.app.database["candidato"]
+
+CandidatoCollection = Annotated[Collection, Depends(get_candidato_collection)]
+async def get_candidatura_collection(request: Request) -> Collection:
+    """Returns the candidatura collection from MongoDB"""
+    return request.app.database["candidatura"]
+
+CandidaturaCollection = Annotated[Collection, Depends(get_candidatura_collection)]
+
 ERROR_DETAIL = "Some error occurred: {e}"
 NOT_FOUND = "Not found"
 
@@ -72,6 +88,68 @@ async def tratar_zip_candidatos(candidatos_file):
     return df_eleicao_unico
 
 # ------------ ROTAS ------------
+# Retorna candidatos por ano
+@router.get("/candidatos-por-ano", response_description="Retrieve candidates for election year", response_model=List[CandidatoPublic])
+async def get_candidates_by_year(
+    eleicao_collection: EleicaoCollection,
+    candidatura_collection: CandidaturaCollection,
+    candidato_collection: CandidatoCollection,
+    ano: int = Query(..., description="Ano da eleição para retornar os candidatos"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100)
+):
+    try:
+        # Pesquisa de eleições pelo ano
+        query = {"ano_eleicao": int(ano)}
+        
+        # Busca as eleições
+        eleicao_cursor = eleicao_collection.find(query)
+        eleicoes = eleicao_cursor.to_list(length=1000)
+        
+        if not eleicoes:
+            logger.error(f"Eleição não encontrada para o ano {ano}.")
+            raise HTTPException(404, detail=NOT_FOUND)
+            
+        # Extrai os códigos de eleição
+        codigos_eleicao = [eleicao["cd_eleicao"] for eleicao in eleicoes]
+        
+        # Busca candidaturas para esses códigos de eleição
+        candidaturas_cursor = candidatura_collection.find(
+            {"cd_eleicao": {"$in": codigos_eleicao}}
+        )
+        candidaturas = candidaturas_cursor.to_list(length=10000)
+        
+        if not candidaturas:
+            logger.error(f"Nenhuma candidatura encontrada para o ano {ano}.")
+            raise HTTPException(404, detail="Nenhuma candidatura encontrada")
+        
+        # Extrai os sq_candidato únicos
+        sq_candidatos = list(set(candidatura["sq_candidato"] for candidatura in candidaturas))
+        
+        # Busca informações dos candidatos
+        candidatos_cursor = candidato_collection.find(
+            {"sq_candidato": {"$in": sq_candidatos}}
+        ).skip(skip).limit(limit)
+        
+        candidatos = candidatos_cursor.to_list(length=10000)
+        
+        if not candidatos:
+            logger.error(f"Nenhum candidato encontrado para o ano {ano}.")
+            raise HTTPException(404, detail="Nenhum candidato encontrado")
+        
+        # Converte para entidades
+        resultado = [candidato_entity(candidato) for candidato in candidatos]
+        
+        logger.info("Retornando resultados.")
+        return resultado
+        
+    except HTTPException as http_exc:
+        raise http_exc
+            
+    except Exception as e:
+        logger.error(ERROR_DETAIL.format(e=e))
+        raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
+        
 # Endpoint para filtrar eleições por vários parâmetros
 @router.get("/pesquisar", response_description="Search Eleicoes by text", response_model=List[EleicaoPublic])
 async def search_eleicoes(
