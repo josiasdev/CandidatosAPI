@@ -9,10 +9,10 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from schemas.BensCandidato import bens_candidato_entity
 from config.database import mongodb_client
 
-ZIP_PATH = '/home/rafael/Downloads/bem_candidato_2024.zip'
+ZIP_PATH = '../resources/bem_candidato_2024.zip'
 CSV_FILENAME = 'bem_candidato_2024_BRASIL.csv'
 
-ZIP_PATH_CANDIDATO = '/home/rafael/Downloads/consulta_cand_2024.zip'
+ZIP_PATH_CANDIDATO = '../resources/consulta_cand_2024.zip'
 CSV_FILENAME_CANDIDATO = 'consulta_cand_2024_BRASIL.csv'
 
 with zipfile.ZipFile(ZIP_PATH, 'r') as zip_ref:

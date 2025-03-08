@@ -115,17 +115,22 @@ Abrange os dados das eleições, com detalhes que possibilitam filtros avançado
 git clone https://github.com/josiasdevCandidatosAPI.git
 ```
 
-2. Instale as dependências:
+2. Baixe a base de dados:
+```bash
+python get_data.py
+```
+
+3. Instale as dependências:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Execute a aplicação:
+4. Execute a aplicação:
 ```bash
 uvicorn main:app --reload
 ```
 
-4. Acesse a documentação interativa via Swagger UI em:
+5. Acesse a documentação interativa via Swagger UI em:
 ```bash
 http://localhost:8000/docs
 ```
