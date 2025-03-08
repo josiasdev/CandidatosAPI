@@ -13,11 +13,11 @@ from schemas.infoCandidato import info_candidato_entity
 from models.candidato import CandidatoCreate
 from models.infoCandidato import InfoCandidatoCreate
 
-ZIP_PATH_CANDIDATO = 'resources/consulta_cand_2024.zip'
-CSV_FILENAME_CANDIDATO = 'consulta_cand_2024/consulta_cand_2024_BRASIL.csv'
+ZIP_PATH_CANDIDATO = '../resources/consulta_cand_2024.zip'
+CSV_FILENAME_CANDIDATO = 'consulta_cand_2024_BRASIL.csv'
 
-ZIP_PATH_CANDIDATO_COMP = 'resources/consulta_cand_complementar_2024.zip'
-CSV_FILENAME_CANDIDATO_COMP = 'consulta_cand_complementar_2024/consulta_cand_complementar_2024_BRASIL.csv'
+ZIP_PATH_CANDIDATO_COMP = '../resources/consulta_cand_complementar_2024.zip'
+CSV_FILENAME_CANDIDATO_COMP = 'consulta_cand_complementar_2024_BRASIL.csv'
 
 with zipfile.ZipFile(ZIP_PATH_CANDIDATO, 'r') as zip_ref:
     with zip_ref.open(CSV_FILENAME_CANDIDATO) as csv_file:
