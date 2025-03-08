@@ -18,7 +18,7 @@ import pandas as pd
 
 from models.candidato import CandidatoCreate, CandidatoBase, CandidatoPublic, CandidatoUpdate
 from schemas.candidato import candidato_entity, candidato_entities
-from models.candidatura import CandidaturaBase, CandidaturaCreate, CandidaturaPublic, CandidaturaUpdate
+from models.Candidatura import CandidaturaBase, CandidaturaCreate, CandidaturaPublic, CandidaturaUpdate
 from schemas.Candidatura import candidatura_entity_from_db, candidatura_entities_from_db
 
 async def get_candidato_collection(request: Request) -> Collection:
