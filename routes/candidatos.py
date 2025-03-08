@@ -32,21 +32,21 @@ async def create_candidato(accident_collection: CandidatoCollection, accident: C
     except Exception as e:
         raise HTTPException(status_code=500, detail=ERROR_DETAIL.format(e=e))
 
-# @router.get("/filter")
-# async def filter_customers(
-#     customer_collection: CustomerCollection,
-#     customer_name: str | None = None,  
-#     limit: int = 10, 
-#     page: int = 1
-# ):
-#     query_filter = {}
+@router.get("/filter")
+async def filter_candidatos_by_name(
+    candidato_collection: CandidatoCollection,
+    name: str | None = None,  
+    page: int = 1,
+    limit: int = 100
+):
+    query_filter = {}
 
-#     if customer_name:
-#         query_filter['first_name'] = {"$regex": customer_name, "$options": "i"}
+    if name:
+        query_filter['nm_candidato'] = {"$regex": name, "$options": "i"}
 
-#     skip = (page - 1) * limit
+    skip = (page - 1) * limit
 
-#     return customers_entity(customer_collection.find(query_filter).skip(skip).limit(limit).to_list())
+    return candidato_entities(candidato_collection.find(query_filter).skip(skip).limit(limit).to_list())
 
 @router.get("/", 
     response_description="Retrieves Candidatos", 
