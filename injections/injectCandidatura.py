@@ -50,7 +50,7 @@ print('\n\n')
 print(merged_df.isnull().sum())
 
 # Conectar ao banco MongoDB
-db = mongodb_client['Candidatos']
+db = mongodb_client['eleicoes']
 collection = db['candidatura']
 
 for _, row in merged_df.iterrows():
