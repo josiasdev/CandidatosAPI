@@ -24,7 +24,7 @@ class CandidatoCreate(CandidatoBase, CandidatoTituloMixin):
     pass
 
 class CandidatoUpdate(BaseModel):
-    sq_candidato: str | None = None 
+    sq_candidato: int | None = None 
     nm_candidato: str | None = None
     dt_nascimento: datetime | None = None
     ds_genero: str | None = None

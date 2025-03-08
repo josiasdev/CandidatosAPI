@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.candidatos import router as candidatos_router
 from routes.BensCandidato import router as bens_candidato_router
 from routes.Candidatura import router as candidatura_router
+from routes.eleicao import router as eleicao_router
+from routes.InfoCandidato import router as info_candidato_router
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -28,7 +30,7 @@ app.add_middleware(
 LOG_FILE = "app.log"
 logger = logging.getLogger("app_logger")
 logger.setLevel(logging.INFO)
-handler = RotatingFileHandler(LOG_FILE, maxBytes=1000000, backupCount=5)
+handler = RotatingFileHandler(LOG_FILE, maxBytes=1000000, backupCount=5, encoding="utf-8")
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -43,7 +45,7 @@ async def log_requests(request: Request, call_next):
 @app.on_event("startup")
 async def startup_db_client():
     app.mongodb_client = MongoClient("mongodb://localhost:27017")
-    app.database = app.mongodb_client['Candidatos']
+    app.database = app.mongodb_client['eleicoes']
     print("Connected to the MongoDB database!")
 
 @app.on_event("shutdown")
@@ -58,4 +60,6 @@ async def homepage():
 
 app.include_router(candidatos_router, prefix="/candidatos", tags=["Candidatos"])
 app.include_router(bens_candidato_router, prefix="/bens_candidato", tags=["BensCandidato"])
-app.include_router(candidatura_router, prefix="/candidatura", tags=["Candidatura"])
+app.include_router(eleicao_router, prefix="/eleicao", tags=["Eleicao"])
+app.include_router(info_candidato_router, prefix="/Info_Candidato", tags=["Informações de Candidatos"])
+app.include_router(candidatura_router, prefix="/candidaturas", tags=["Candidatura"])

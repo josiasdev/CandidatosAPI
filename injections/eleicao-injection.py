@@ -9,7 +9,8 @@ from config.database import mongodb_client
 from pydantic import ValidationError
 
 # Caminho dos arquivos ZIP e das colunas desejadas
-ZIP_PATH_CANDIDATOS = '/home/rafael/Downloads/consulta_cand_2024.zip'
+ZIP_PATH_CANDIDATOS = '/Users/robso/Downloads/dataset/consulta_cand_2024.zip'
+
 
 # Colunas para realizar o tratamento
 colunas_desejadas_candidatos = [
@@ -48,7 +49,7 @@ print("Inserindo dados no banco. Aguarde...")
 
 # ------------ Inserção no banco de dados ------------
 db = mongodb_client['eleicoes']
-collection = db['eleicoes']
+collection = db['eleicao']
 for eleicao in df_eleicao_unico.to_dict(orient="records"):
     try:
         # Criar a instância de EleicaoBase
